@@ -1,5 +1,5 @@
 zabbix_export:
-  version: '6.4'
+  version: '7.2'
   template_groups:
     - uuid: 7df96b18c230490a9a0a9e2307226338
       name: Templates
@@ -10,7 +10,10 @@ zabbix_export:
       description: |
         Created by VijayK.
         
-        GitHub: https://github.com/VSKUMBHANI/
+        GitHub: https://github.com/vskumbhani/
+      vendor:
+        name: 'https://github.com/vskumbhani'
+        version: 7.2-0
       groups:
         - name: Templates
       items:
@@ -20,8 +23,8 @@ zabbix_export:
           snmp_oid: .1.3.6.1.4.1.25506.20.4.0
           key: Camera.Offline
           history: 2d
-          trends: '0'
           value_type: TEXT
+          description: 'Return offline camera list.'
           preprocessing:
             - type: JAVASCRIPT
               parameters:
@@ -41,7 +44,7 @@ zabbix_export:
                     const status = match[5];
                     const model = match[6];
                   
-                  result = "\nCamera "+name +" is "+status+" with IP "+ip;
+                  result = "\nCamera "+name +" is "+status;
                   //const wordToFind = "OFFLINE";
                   const camoff = result.search("ONLINE");
                   //console.log(camoff);
@@ -54,20 +57,24 @@ zabbix_export:
                   match = regex.exec(data);
                   }
                   //console.log("ONLINE" + arrcamonline);
-                  return ("Camera status...!!! \n" + arrcamoffline);
+                  return ("Camera status changed...!!! \n" + arrcamoffline);
+          tags:
+            - tag: status
+              value: camera
+            - tag: status
+              value: 'not online'
           triggers:
             - uuid: 5486c97a66f54217bf91f8bde021d0a6
               expression: 'find(/Uniview by SNMP/Camera.Offline,,,"OFFLINE")=1 or find(/Uniview by SNMP/Camera.Offline,,,"Network Disconnecte")=1'
-              name: 'Camera offline'
+              name: 'Camera goes offline'
               priority: WARNING
               manual_close: 'YES'
         - uuid: 7086ec908bd04a0abfae6fae2b8af276
-          name: Camera
+          name: 'All Camera Info'
           type: SNMP_AGENT
           snmp_oid: .1.3.6.1.4.1.25506.20.4.0
           key: CameraList
           history: 1d
-          trends: '0'
           value_type: TEXT
           description: |
             This item return the value in short format.
@@ -93,30 +100,123 @@ zabbix_export:
                     const status = match[5];
                     const model = match[6];
                   
-                  result = "Camera "+name +" is "+status+" with IP "+ip;
+                  result = "\nCamera "+name +" is "+status+" with IP "+ip;
                   arr.push(result);
                   
                   match = regex.exec(data);
                   }
                   return arr;
+          tags:
+            - tag: status
+              value: camera
         - uuid: fc967182cc7e409ca52980352a5d5fe2
-          name: 'CPU Info'
+          name: 'CPU Utilization'
           type: SNMP_AGENT
           snmp_oid: .1.3.6.1.4.1.25506.20.8.0
-          key: CPU
+          key: CPUutilization
           delay: 10s
           history: 1d
-          trends: '0'
           value_type: TEXT
-        - uuid: c104937e154b4e17afe73fc4e9517f50
-          name: 'Device Info'
+          description: 'Return current CPU Utilization of NVR'
+          tags:
+            - tag: component
+              value: cpu
+            - tag: component
+              value: health
+        - uuid: f2b1f488806a40198e888e452e30290d
+          name: 'Device Manufacturer'
           type: SNMP_AGENT
           snmp_oid: .1.3.6.1.4.1.25506.20.1.0
-          key: Device
-          history: 2d
-          trends: '0'
+          key: devManufct
+          delay: 5m
+          history: 1d
           value_type: TEXT
-          inventory_link: HARDWARE_FULL
+          description: Model
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  const data=value;
+                  const regex = /Manufacture:\s+(.+?)\b/g;
+                  var match = regex.exec(data);
+                  return match[1];
+          tags:
+            - tag: component
+              value: device
+            - tag: component
+              value: hardware
+        - uuid: 35e1fb98c97d4462b180873eebb7ae21
+          name: 'Device Name (Model)'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.25506.20.1.0
+          key: devname
+          delay: 5m
+          history: 1d
+          value_type: TEXT
+          description: Model
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  const data=value;
+                  const regex = /DevModel:\s+(.+?)\s+/g;
+                  var match = regex.exec(data);
+                  return match[1];
+          tags:
+            - tag: component
+              value: device
+            - tag: component
+              value: hardware
+        - uuid: 226fdb0882114575b0ae390314cbc26f
+          name: 'Device Serial Number'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.25506.20.1.0
+          key: devseqnumber
+          delay: 5m
+          history: 1d
+          value_type: TEXT
+          description: 'S/N number'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  const data=value;
+                  const regex = /DevSeqNumber:\s+(.+?)\s+/g;
+                  var match = regex.exec(data);
+                  return match[1];
+          tags:
+            - tag: component
+              value: device
+            - tag: component
+              value: hardware
+        - uuid: 3df986c805334851a5da82eec94ab67f
+          name: 'Total Disk Array Info'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.25506.20.2.0
+          key: diskArray
+          delay: 5m
+          history: 1d
+          value_type: TEXT
+          description: 'Disk array'
+          tags:
+            - tag: component
+              value: disk
+            - tag: component
+              value: hardware
+        - uuid: cab9eee414844444b8004a7987b217f2
+          name: 'Total Disk Info'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.25506.20.3.0
+          key: diskInfo
+          delay: 5m
+          history: 1d
+          value_type: TEXT
+          description: 'Total disk'
+          tags:
+            - tag: component
+              value: disk
+            - tag: component
+              value: hardware
         - uuid: c7a95f9297b74cfb92473fdb0a53e047
           name: 'ICMP ping'
           type: SIMPLE
@@ -130,13 +230,19 @@ zabbix_export:
               value: health
             - tag: component
               value: network
+          triggers:
+            - uuid: 06a1acf4347d43baa06728a718c0a3f0
+              expression: 'max(/Uniview by SNMP/icmpping,#3)=0'
+              name: 'Unavailable ICMP ping'
+              priority: WARNING
+              manual_close: 'YES'
         - uuid: efa86c4ea70e4e1a8479da80f6d1e04c
           name: 'ICMP loss'
           type: SIMPLE
           key: icmppingloss
           history: 2d
-          trends: 5d
           value_type: FLOAT
+          trends: 5d
           units: '%'
           tags:
             - tag: component
@@ -148,14 +254,113 @@ zabbix_export:
           type: SIMPLE
           key: icmppingsec
           history: 2d
-          trends: 5d
           value_type: FLOAT
+          trends: 5d
           units: s
           tags:
             - tag: component
               value: health
             - tag: component
               value: network
+        - uuid: c495431471ed494cbcb57e5bcd02e517
+          name: 'Memory Free'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.25506.20.7.0
+          key: memoryfree
+          delay: 10s
+          history: 1d
+          value_type: FLOAT
+          trends: 7d
+          units: B
+          description: 'Free memory calculation'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  const data=value;
+                  const regex = / MemFree:\s+(\d+)/g;
+                  var match = regex.exec(data);
+                  return match[1];
+            - type: MULTIPLIER
+              parameters:
+                - '1024'
+          tags:
+            - tag: component
+              value: health
+            - tag: component
+              value: memory
+        - uuid: ffa442c87ae5442f81bfce26d419d2f0
+          name: 'Memory Total'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.25506.20.7.0
+          key: memorytotal
+          delay: 10s
+          history: 1d
+          value_type: FLOAT
+          trends: 7d
+          units: B
+          description: 'Total memory'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  const data=value;
+                  const regex = / MemTotal: \s+(.+?)\s+/g;
+                  var match = regex.exec(data);
+                  var str = match[1].slice(0, -4);
+                  return str;
+            - type: MULTIPLIER
+              parameters:
+                - '1024'
+          tags:
+            - tag: component
+              value: health
+            - tag: component
+              value: memory
+        - uuid: 875707fdebee4096b9f6b106e3dfcba5
+          name: 'Memory Utilization'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.25506.20.7.0
+          key: memoryutilization
+          delay: 10s
+          history: 1d
+          value_type: TEXT
+          description: 'Current memory utilization by NVR'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  const data=value;
+                  const regex = / MemUtilization: \s+(.+?)\s+/g;
+                  var match = regex.exec(data);
+                  return match[1];
+          tags:
+            - tag: component
+              value: health
+            - tag: component
+              value: memory
+        - uuid: 16a6f9e66def42c1b4babef337816f71
+          name: 'Software Version'
+          type: SNMP_AGENT
+          snmp_oid: .1.3.6.1.4.1.25506.20.1.0
+          key: softversion
+          delay: 5m
+          history: 1d
+          value_type: TEXT
+          description: 'Software version'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  const data=value;
+                  const regex = /SoftwareVersion:\s+(.+?)\s+/g;
+                  var match = regex.exec(data);
+                  return match[1];
+          tags:
+            - tag: component
+              value: device
+            - tag: component
+              value: hardware
         - uuid: 19b6b5416af84bcdb2058944e47fc2b5
           name: 'Number of CPUs'
           type: SNMP_AGENT
@@ -178,7 +383,7 @@ zabbix_export:
         - uuid: d4825a5303f84236adf4e0de2addd950
           name: 'Uptime (hardware)'
           type: SNMP_AGENT
-          snmp_oid: 1.3.6.1.2.1.25.1.1.0
+          snmp_oid: .1.3.6.1.4.1.25506.20.6.0
           key: 'system.hw.uptime[hrSystemUptime.0]'
           delay: 30s
           history: 2d
@@ -190,9 +395,17 @@ zabbix_export:
           preprocessing:
             - type: CHECK_NOT_SUPPORTED
               parameters:
-                - ''
+                - '-1'
               error_handler: CUSTOM_VALUE
               error_handler_params: '0'
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  const data=value;
+                  const regex = /System Operation Time:\s(.+?)\b/g;
+                  var match = regex.exec(data);
+                  //var str = match[1].slice(0, -4);
+                  return match[1];
             - type: MULTIPLIER
               parameters:
                 - '0.01'
@@ -218,6 +431,117 @@ zabbix_export:
               value: health
             - tag: component
               value: network
+          triggers:
+            - uuid: 8d77a30a824946908a8f6e5eceeec87f
+              expression: 'max(/Uniview by SNMP/zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0'
+              name: 'SNMP agent unavailable'
+              priority: WARNING
+              dependencies:
+                - name: 'Unavailable ICMP ping'
+                  expression: 'max(/Uniview by SNMP/icmpping,#3)=0'
+      discovery_rules:
+        - uuid: f2d4b8d1d739496fba5db177bf2acbf9
+          name: 'Discover Camera'
+          type: EXTERNAL
+          key: 'CCTV1.sh["{HOST.IP}"]'
+          lifetime: 1d
+          description: |
+            Save the script on path /usr/lib/zabbix/externalscripts/ with name CCTV1.sh
+            ========================================
+            #!/bin/bash
+            
+            HOST="Zabbix Server IP" 
+            COMMUNITY="SNMP COMMUNITY" 
+            OID=".1.3.6.1.4.1.25506.20.4"
+            
+            # Get raw SNMP string
+            raw=$(snmpwalk -v2c -c "$COMMUNITY" "$HOST" "$OID" -Oqv)
+            
+            # Parse into JSON safely
+            echo "$raw" | awk '
+            function escape(str) {
+                gsub(/\\/, "\\\\", str)
+                gsub(/"/, "\\\"", str)
+                gsub(/\t/, " ", str)
+                gsub(/\r/, "", str)
+                gsub(/\n/, "", str)
+                gsub(/  +/, " ", str)
+                return str
+            }
+            
+            BEGIN {
+                print "{"
+                print "  \"data\": ["
+                first = 1
+            }
+            {
+                gsub("IPC.NO: ", "\nIPC.NO:", $0)
+                split($0, blocks, "\n")
+                for (i in blocks) {
+                    if (blocks[i] ~ /IPC.NO:/) {
+                        match(blocks[i], /IPC.NO:\s*([0-9]+)/, m_no)
+                        match(blocks[i], /IPC.Name:\s*(.+?)\s+IPC.IP:/, m_name)
+                        match(blocks[i], /IPC.IP:\s*([0-9\.]+)/, m_ip)
+                        match(blocks[i], /IPC.Port:\s*([0-9]+)/, m_port)
+                        match(blocks[i], /IPC.Status:\s*([A-Z]+)/, m_status)
+                        match(blocks[i], /IPC.Model:\s*([^\s]+)/, m_model)
+                        match(blocks[i], /IPC.Software:\s*([^\s]+)/, m_sw)
+            
+                        name = m_name[1]
+                        sub(/[ \t]+$/, "", name)  # Trim trailing whitespace from IPCNAME
+            
+                        if (!first) print ","
+                        first = 0
+            
+                        printf "    {\n"
+                        printf "      \"{#IPCNO}\": \"%s\",\n", escape(m_no[1])
+                        printf "      \"{#IPCNAME}\": \"%s\",\n", escape(name)
+                        printf "      \"{#IPCIP}\": \"%s\",\n", escape(m_ip[1])
+                        printf "      \"{#IPCPORT}\": \"%s\",\n", escape(m_port[1])
+                        printf "      \"{#IPCSTATUS}\": \"%s\",\n", escape(m_status[1])
+                        printf "      \"{#IPCMODEL}\": \"%s\",\n", escape(m_model[1])
+                        printf "      \"{#IPCSOFTWARE}\": \"%s\"\n", escape(m_sw[1])
+                        printf "    }"
+                    }
+                }
+            }
+            END {
+                print "\n  ]"
+                print "}"
+            }
+            '
+            =========================================================
+          item_prototypes:
+            - uuid: 0d9b54f40bea456da0a707dc3eb232bb
+              name: 'Camera : {#IPCNAME}'
+              type: EXTERNAL
+              key: 'CCTV1.sh["{#IPCIP}"]'
+              history: 1d
+              value_type: TEXT
+              preprocessing:
+                - type: JAVASCRIPT
+                  parameters:
+                    - |
+                      var status = "{#IPCSTATUS}";
+                      return status;
+              tags:
+                - tag: component
+                  value: camera
+                - tag: component
+                  value: nvr
+                - tag: status
+                  value: '{#IPCSTATUS}'
+              trigger_prototypes:
+                - uuid: 209a2bcfdd954a0483825505b795932d
+                  expression: 'last(/Uniview by SNMP/CCTV1.sh["{#IPCIP}"])<>"ONLINE"'
+                  name: 'Camera : {#IPCNAME} status changed'
+                  opdata: 'Current status is : {#IPCSTATUS}'
+                  priority: WARNING
+                  description: 'Triggered when last value of IPCSTATUS not ONLINE.'
+                  manual_close: 'YES'
+      macros:
+        - macro: '{$SNMP.TIMEOUT}'
+          value: 5m
       valuemaps:
         - uuid: 9f6c71fc877c4adba1d5a004288e6368
           name: available
@@ -228,6 +552,11 @@ zabbix_export:
               newvalue: Available
             - value: '2'
               newvalue: Unknown
+        - uuid: 7e3998f378054aea9012bfba5c2434d8
+          name: cctv
+          mappings:
+            - value: 'N'
+              newvalue: 'Network Issue'
         - uuid: 243888e4f9af438b8ea0b21e6231572a
           name: icmpvalue
           mappings:
